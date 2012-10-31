@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# this tool helps you to manage multiple aws keys
+# make your ~/.s3cfg file a symlink to files named:
+#  ~/.s3cfg-<name>
+# this tool will swap the symlink to the correct file
+
+if [[ -z "$1" ]]
+then
+   echo "Usage: $1 <key name>"
+   echo "Available keys:"
+
+   current=`ls -l ${HOME}/.s3cfg | awk '{print $11}'`
+
+   for key in `ls ${HOME}/.s3cfg-*`
+   do
+      if [[ "$key" == "$current" ]]
+      then
+         echo -n "* "
+      else
+         echo -n "- "
+      fi
+
+      key=`basename $key`
+      key=`echo $key | cut -d '-' -f 2-`
+      echo "$key"
+   done
+else
+   path="${HOME}/.s3cfg-${1}"
+   if [[ ! -e "$path" ]]
+   then
+      echo 'invalid key'
+      exit 1
+   fi
+
+   rm ${HOME}/.s3cfg && ln -s $path ${HOME}/.s3cfg
+   echo "Configured to use key $1; if you want this config for other AWS tools, run:"
+
+   while read line
+   do
+      if [[ $line == "access_key"* ]]
+      then
+         access=${line:13}
+         echo "export AWS_ACCESS_KEY_ID=$access"
+      elif [[ $line == "secret_key"* ]]
+      then
+         secret=${line:13}
+         echo "export AWS_SECRET_ACCESS_KEY=$secret"
+      fi
+   done < ${HOME}/.s3cfg
+fi
